@@ -36,7 +36,7 @@ impl KernelInfo {
         }
     }
 
-    #[cfg_attr(not(target_os = "freebsd"), allow(dead_code))]
+    #[allow(dead_code)]
     pub fn get_version(&self) -> io::Result<String> {
         #[cfg(target_os = "freebsd")]
         {

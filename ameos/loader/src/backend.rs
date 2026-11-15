@@ -15,6 +15,7 @@ pub trait BootBackend {
     fn power_off(&self) -> io::Result<()>;
 }
 
+#[allow(dead_code)]
 pub struct StubBackend;
 
 impl BootBackend for StubBackend {
@@ -82,6 +83,7 @@ impl FreeBSDBackend {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_kernel(kernel_path: String) -> Self {
         Self { kernel_path }
     }
@@ -90,6 +92,7 @@ impl FreeBSDBackend {
         self.kernel_path = kernel_path;
     }
 
+    #[allow(dead_code)]
     pub fn kernel_path(&self) -> &str {
         &self.kernel_path
     }
