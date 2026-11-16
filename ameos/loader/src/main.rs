@@ -57,10 +57,6 @@ fn run_screen(screen: &mut dyn Screen) -> io::Result<Action> {
     }
 }
 
-fn leave_terminal(guard: TerminalGuard) {
-    drop(guard);
-}
-
 fn main() -> io::Result<()> {
     let terminal_guard = TerminalGuard::enter()?;
 
@@ -86,6 +82,9 @@ fn main() -> io::Result<()> {
     let mut stack: Vec<Box<dyn Screen>> = vec![Box::new(main_menu)];
 
     'main: while let Some(mut current) = stack.pop() {
+        // TODO(tech-debt): dispatch is done by comparing title strings; a
+        // Screen::on_select() method per screen would be cleaner and would
+        // prevent silent routing breaks from title typos.
         let action = run_screen(&mut *current)?;
         let title = current.title();
         let selected = current.selected_index().unwrap_or(0);
@@ -104,7 +103,7 @@ fn main() -> io::Result<()> {
                 if title == "AmeOS Loader" {
                     match selected {
                         0 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.boot_default()?;
                             return Ok(());
                         }
@@ -182,7 +181,7 @@ fn main() -> io::Result<()> {
                             )));
                         }
                         6 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             match snapshot::SnapshotInfo::current() {
                                 Ok(info) => {
                                     println!("{}", info.display());
@@ -197,7 +196,7 @@ fn main() -> io::Result<()> {
                             return Ok(());
                         }
                         7 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             if let Err(e) = backend.power_off() {
                                 eprintln!("Power off failed: {}", e);
                             }
@@ -216,23 +215,29 @@ fn main() -> io::Result<()> {
                             backend.set_kernel(k.path.clone());
                             #[cfg(not(target_os = "freebsd"))]
                             let _ = k;
+                            // Surface the new selection on the parent menu's status line.
+                            if let Some(parent) = stack.last_mut() {
+                                parent.set_status(&format!("Kernel set: {}", k.name));
+                            }
+                        } else if let Some(parent) = stack.last_mut() {
+                            parent.set_status(&format!("Kernel unavailable: {}", k.name));
                         }
                     }
                     // Always return to parent regardless of which item was selected
                 } else if title == "Boot Profiles" {
                     match selected {
                         0 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.boot_default()?;
                             return Ok(());
                         }
                         1 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.boot_single_user()?;
                             return Ok(());
                         }
                         2 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.boot_safe_mode()?;
                             return Ok(());
                         }
@@ -241,17 +246,17 @@ fn main() -> io::Result<()> {
                 } else if title == "Recovery Environment" {
                     match selected {
                         0 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.mount_filesystems()?;
                             return Ok(());
                         }
                         1 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.configure_network()?;
                             return Ok(());
                         }
                         2 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.spawn_shell()?;
                             return Ok(());
                         }
@@ -260,17 +265,17 @@ fn main() -> io::Result<()> {
                 } else if title == "Hardware Diagnostics" {
                     match selected {
                         0 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.run_memory_test()?;
                             return Ok(());
                         }
                         1 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.run_disk_test()?;
                             return Ok(());
                         }
                         2 => {
-                            leave_terminal(terminal_guard);
+                            drop(terminal_guard); // restores terminal before backend action
                             backend.show_cpu_info()?;
                             return Ok(());
                         }
@@ -280,7 +285,7 @@ fn main() -> io::Result<()> {
                     let environments = zfs::list_boot_environments().unwrap_or_else(|_| vec![]);
                     if selected < environments.len() {
                         let be = &environments[selected];
-                        leave_terminal(terminal_guard);
+                        drop(terminal_guard); // restores terminal before backend action
                         if let Err(e) = zfs::activate_boot_environment(&be.name) {
                             eprintln!("Failed to activate boot environment: {}", e);
                         } else {

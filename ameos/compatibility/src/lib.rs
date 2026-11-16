@@ -98,8 +98,8 @@ unsafe extern "C" {
         argv: *const *const c_char,
         out: *mut *mut std::ffi::c_void,
     ) -> i32;
-    fn ame_compat_process_wait(file: *mut std::ffi::c_void, exit_status: *mut i32) -> i32;
-    fn ame_compat_process_close(file: *mut std::ffi::c_void) -> i32;
+    fn ame_compat_process_wait(process: *mut std::ffi::c_void, exit_status: *mut i32) -> i32;
+    fn ame_compat_process_close(process: *mut std::ffi::c_void) -> i32;
 }
 
 pub fn version() -> Result<Version, Error> {
@@ -117,37 +117,46 @@ pub fn version() -> Result<Version, Error> {
 
 pub fn getenv(name: &str) -> Result<Option<String>, Error> {
     let name = CString::new(name)?;
-    let mut required_len = 0;
+    let mut required_len = 0usize;
+
+    // Probe for the required length on the first call.
     let status =
         unsafe { ame_compat_getenv(name.as_ptr(), std::ptr::null_mut(), 0, &mut required_len) };
-    if Status::from_raw(status) == Status::NotFound {
-        return Ok(None);
-    }
-    if !matches!(
-        Status::from_raw(status),
-        Status::BufferTooSmall | Status::Ok
-    ) {
-        return Err(Error::Status(Status::from_raw(status)));
+    match Status::from_raw(status) {
+        Status::NotFound => return Ok(None),
+        Status::Ok | Status::BufferTooSmall => {}
+        s => return Err(Error::Status(s)),
     }
 
-    let mut buffer = vec![0u8; required_len];
-    let status = unsafe {
-        ame_compat_getenv(
-            name.as_ptr(),
-            buffer.as_mut_ptr().cast(),
-            buffer.len(),
-            std::ptr::null_mut(),
-        )
-    };
-    if status != Status::Ok as i32 {
-        return Err(Error::Status(Status::from_raw(status)));
+    // Retry the fill call a bounded number of times. Another thread changing
+    // the environment between probe and fill can make required_len grow, in
+    // which case the C side returns BufferTooSmall again. A bounded loop is
+    // enough to converge in practice and avoids an infinite spin.
+    for _ in 0..3 {
+        let mut buffer = vec![0u8; required_len.max(1)];
+        let status = unsafe {
+            ame_compat_getenv(
+                name.as_ptr(),
+                buffer.as_mut_ptr().cast(),
+                buffer.len(),
+                &mut required_len,
+            )
+        };
+        match Status::from_raw(status) {
+            Status::NotFound => return Ok(None),
+            Status::Ok => {
+                return CStr::from_bytes_with_nul(&buffer)
+                    .map_err(|_| Error::InvalidUtf8)?
+                    .to_str()
+                    .map(str::to_owned)
+                    .map(Some)
+                    .map_err(|_| Error::InvalidUtf8);
+            }
+            Status::BufferTooSmall => continue,
+            s => return Err(Error::Status(s)),
+        }
     }
-    CStr::from_bytes_with_nul(&buffer)
-        .map_err(|_| Error::InvalidUtf8)?
-        .to_str()
-        .map(str::to_owned)
-        .map(Some)
-        .map_err(|_| Error::InvalidUtf8)
+    Err(Error::Status(Status::BufferTooSmall))
 }
 
 pub fn setenv(name: &str, value: &str, overwrite: bool) -> Result<(), Error> {

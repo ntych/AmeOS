@@ -90,7 +90,12 @@ ame_compat_status ame_compat_setenv(
         return AME_COMPAT_INVALID_ARGUMENT;
     }
 #if defined(_WIN32)
-    (void)overwrite;
+    /* On Windows there is no atomic setenv with an overwrite flag, so we
+     * emulate POSIX semantics: skip the write when overwrite == 0 and the
+     * variable is already set. */
+    if (!overwrite && getenv(name) != NULL) {
+        return AME_COMPAT_OK;
+    }
     return _putenv_s(name, value) == 0 ? AME_COMPAT_OK : AME_COMPAT_INVALID_ARGUMENT;
 #else
     return setenv(name, value, overwrite != 0) == 0
@@ -129,8 +134,11 @@ ame_compat_status ame_compat_file_open(
     }
     file->stream = fopen(path, write != 0 ? "wb" : "rb");
     if (file->stream == NULL) {
+        int saved_errno = errno;
         free(file);
-        return AME_COMPAT_NOT_FOUND;
+        /* Distinguish "file not found" from other I/O errors (permissions,
+         * EMFILE, etc.) so callers can decide whether to create the file. */
+        return saved_errno == ENOENT ? AME_COMPAT_NOT_FOUND : AME_COMPAT_IO_ERROR;
     }
     *out = file;
     return AME_COMPAT_OK;
@@ -217,6 +225,10 @@ ame_compat_status ame_compat_process_open(
     }
     if (process->pid == 0) {
         execv(path, (char *const *)argv);
+        /* execv failed; _exit(127) is the conventional "command not found"
+         * code.  The parent cannot distinguish this from a process that ran
+         * and exited 127.  A production implementation should use a
+         * close-on-exec pipe to propagate errno back to the parent. */
         _exit(127);
     }
 #endif

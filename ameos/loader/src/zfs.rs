@@ -12,11 +12,11 @@ pub struct BootEnvironment {
     pub creation: String,
 }
 
-/// Parse one tab-separated line from `bectl list -H`.
+/// Parse one line from `bectl list -H`. The output is tab-separated.
 /// Columns: Name  Active  Mountpoint  Space  Created...
-/// Returns None if the line has fewer than 5 whitespace-separated fields.
+/// Returns None if the line has fewer than 5 tab-separated fields.
 pub fn parse_bectl_line(line: &str) -> Option<BootEnvironment> {
-    let parts: Vec<&str> = line.split_whitespace().collect();
+    let parts: Vec<&str> = line.split('\t').collect();
     if parts.len() >= 5 {
         Some(BootEnvironment {
             name: parts[0].to_owned(),
@@ -151,10 +151,10 @@ mod tests {
 
     #[test]
     fn rejects_short_line() {
-        // fewer than 5 fields → None
-        assert!(parse_bectl_line("one two three four").is_none()); // 4 fields
-        assert!(parse_bectl_line("a b c").is_none()); // 3 fields
-        assert!(parse_bectl_line("").is_none()); // empty
+        // bectl -H uses tabs; lines with fewer than 5 tab-separated fields are ignored
+        assert!(parse_bectl_line("name\tNR\t/\t1G").is_none()); // 4 tab-fields
+        assert!(parse_bectl_line("a\tb\tc").is_none()); // 3 tab-fields
+        assert!(parse_bectl_line("").is_none()); // empty → 1 field
     }
 
     #[test]

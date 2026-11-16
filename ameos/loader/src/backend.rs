@@ -83,11 +83,6 @@ impl FreeBSDBackend {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn with_kernel(kernel_path: String) -> Self {
-        Self { kernel_path }
-    }
-
     pub fn set_kernel(&mut self, kernel_path: String) {
         self.kernel_path = kernel_path;
     }
@@ -223,14 +218,9 @@ impl BootBackend for FreeBSDBackend {
 
         #[cfg(target_os = "freebsd")]
         {
-            let status = Command::new("/bin/sh").status()?;
-
-            if !status.success() {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "Shell exited with error",
-                ));
-            }
+            // A shell exiting non-zero is normal (last command failed).
+            // Only propagate an I/O error from the spawn itself.
+            let _ = Command::new("/bin/sh").status()?;
         }
 
         #[cfg(not(target_os = "freebsd"))]

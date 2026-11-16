@@ -159,6 +159,10 @@ impl Screen for Menu {
     fn selected_index(&self) -> Option<usize> {
         Some(self.selected)
     }
+
+    fn set_status(&mut self, msg: &str) {
+        self.status = msg.to_owned();
+    }
 }
 
 #[cfg(test)]

@@ -30,7 +30,15 @@ typedef struct ame_compat_version {
 /* Returns the ABI and layer version. The pointer may be NULL. */
 ame_compat_status ame_compat_get_version(ame_compat_version *out);
 
-/* Copies a NUL-terminated environment value into out. */
+/* Copies a NUL-terminated environment value into out.
+ *
+ * Two-step probe pattern: pass out=NULL and out_len=0 on the first call to
+ * get the required buffer size in *required_len (including the NUL byte).
+ * Allocate that many bytes, then call again with the real buffer.
+ * Returns BUFFER_TOO_SMALL when out_len < required_len; in that case
+ * *required_len still contains the size needed.
+ * Returns NOT_FOUND (and sets *required_len to 0 when non-NULL) when the
+ * variable is not set. */
 ame_compat_status ame_compat_getenv(
     const char *name,
     char *out,

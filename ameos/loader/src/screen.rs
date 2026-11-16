@@ -14,4 +14,7 @@ pub trait Screen {
     fn selected_index(&self) -> Option<usize> {
         None
     }
+    /// Update the status line shown at the bottom of the screen.
+    /// The default implementation is a no-op for screens that have no status line.
+    fn set_status(&mut self, _msg: &str) {}
 }

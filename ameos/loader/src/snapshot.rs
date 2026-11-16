@@ -139,6 +139,11 @@ pub fn utc_secs_to_moscow_string(utc_secs: u64) -> String {
         day -= days_in_month;
     }
 
+    // Defensive: the year loop guarantees days < 365 or 366, so the month
+    // loop must always converge. If it somehow did not, month stays 0 and
+    // the formatted date would be malformed (YYYY-00-DD).
+    debug_assert!(month != 0, "month loop did not converge");
+
     let seconds_today = moscow_secs % 86400;
     let hour = seconds_today / 3600;
     let minute = (seconds_today % 3600) / 60;
