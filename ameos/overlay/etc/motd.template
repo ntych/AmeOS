@@ -1,0 +1,6 @@
+Welcome to AmeOS @AMEOS_VERSION@ (FreeBSD @FREEBSD_REVISION@-@FREEBSD_BRANCH@)
+
+  Project:  https://ameos.umi-kujou.ru/
+  Source:   https://github.com/ntych/AmeOS
+  Build:    @SOURCE_COMMIT@
+

@@ -1,0 +1,14 @@
+NAME="AmeOS"
+VERSION="@AMEOS_VERSION@"
+ID=ameos
+ID_LIKE=freebsd
+PRETTY_NAME="AmeOS @AMEOS_VERSION@"
+VERSION_ID="@AMEOS_VERSION@"
+HOME_URL="https://ameos.umi-kujou.ru/"
+SUPPORT_URL="https://github.com/ntych/AmeOS"
+BUG_REPORT_URL="https://github.com/ntych/AmeOS/issues"
+BUILD_ID="@SOURCE_COMMIT@"
+VARIANT="Console"
+VARIANT_ID=console
+FREEBSD_REVISION="@FREEBSD_REVISION@"
+FREEBSD_BRANCH="@FREEBSD_BRANCH@"

@@ -107,10 +107,11 @@ Source date epoch: $epoch
 Target/kernel: $TARGET/$TARGET_ARCH/$KERNCONF
 Base system version: $freebsd_type $freebsd_revision-$freebsd_branch
 Release filename prefix: $release
+Overlay: ameos/overlay/ (os-release, motd) applied via apply-overlay.sh
 Work directory: $workdir
 Artifacts: $workdir/artifacts
 Jobs: $jobs
-Stages: snapshot -> buildworld -> buildkernel -> release -> install artifacts
+Stages: snapshot -> buildworld -> buildkernel -> release -> install artifacts -> apply overlay
 External packages/ports/pkgbase: disabled
 Host installation: none; release install uses DESTDIR
 EOF
