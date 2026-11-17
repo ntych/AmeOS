@@ -23,10 +23,12 @@
   `@AMEOS_VERSION@` в overlay).
 - [x] `etc/os-release` и `etc/motd` через overlay с подстановкой токенов.
 - [x] Скрипт применения overlay (`apply-overlay.sh`) с режимом `--dry-run`.
-- [ ] Генерация приветствия, загрузочные ресурсы.
-- [ ] Проверяемый механизм применения overlay и включения его в установленные
-  файлы, а не только в live-носитель.
-- [ ] Выбор базы для дальнейшего desktop-профиля и политики обновления upstream.
+- [x] Загрузочные ресурсы (`rc.conf.local`, `loader.conf.local`).
+- [x] Проверяемый механизм overlay: `apply-overlay.test.mjs` в CI.
+- [x] Пакетная база — официальный FreeBSD pkg; upstream — 16.0-CURRENT.
+  Профиль `desktop-amd64` с `WITH_PACKAGES=yes` и конфигурацией репозитория
+  в `etc/pkg/AmeOS.conf` (overlay). `build-release.sh` поддерживает оба
+  режима: без pkg (консольные профили) и с pkg (desktop).
 
 ## 3. Прототип AmeDE
 

@@ -16,7 +16,7 @@ Usage: sh ameos/scripts/build-release.sh [--plan|--check] [--profile NAME] [--jo
 
   --plan       Show inputs and stages without creating files (any POSIX host).
   --check      Check native FreeBSD tools and resources without building.
-  --profile    base-amd64 (default), compact-amd64 or v0.2-b-amd64.
+  --profile    base-amd64 (default), compact-amd64, v0.2-b-amd64 or desktop-amd64.
   --jobs N     Parallel build jobs; default: 2.
   --workdir    New, absolute directory outside the source checkout.
   --help       Show this help.
@@ -49,7 +49,7 @@ while [ "$#" -gt 0 ]; do
 	esac
 done
 [ "$plan:$check" != yes:yes ] || fail '--plan and --check are mutually exclusive'
-case "$profile" in base-amd64|compact-amd64|v0.2-b-amd64) ;; *) fail 'unknown build profile' ;; esac
+case "$profile" in base-amd64|compact-amd64|v0.2-b-amd64|desktop-amd64) ;; *) fail 'unknown build profile' ;; esac
 
 case "$jobs" in ''|*[!0-9]*|0|0*) fail '--jobs must be a positive integer' ;; esac
 case "$workdir" in
@@ -88,6 +88,14 @@ epoch=$(git -C "$root" show -s --format=%ct "$commit")
 . "$root/ameos/profiles/$profile.conf"
 [ "$TARGET:$TARGET_ARCH:$KERNCONF" = 'amd64:amd64:GENERIC' ] || fail 'unsupported target profile'
 case "$AMEOS_VERSION" in ''|*[!a-zA-Z0-9.-]*) fail 'invalid AmeOS version' ;; esac
+# WITH_PACKAGES is optional; console profiles leave it unset.
+with_packages="${WITH_PACKAGES:-no}"
+pkg_abi="${PKG_ABI:-}"
+pkg_repo_branch="${PKG_REPO_BRANCH:-}"
+if [ "$with_packages" = yes ]; then
+    [ -n "$pkg_abi" ]         || fail 'desktop profile requires PKG_ABI'
+    [ -n "$pkg_repo_branch" ] || fail 'desktop profile requires PKG_REPO_BRANCH'
+fi
 version_file="$root/sys/conf/newvers.sh"
 freebsd_type=$(sed -n 's/^TYPE="\([^"]*\)"$/\1/p' "$version_file")
 freebsd_revision=$(sed -n 's/^REVISION="\([^"]*\)"$/\1/p' "$version_file")
@@ -98,8 +106,9 @@ case "$freebsd_branch" in ''|*[!a-zA-Z0-9._-]*) fail 'invalid FreeBSD branch' ;;
 release="AmeOS-${AMEOS_VERSION}-${TARGET_ARCH}"
 dirty=$(git -C "$root" status --porcelain --untracked-files=normal)
 
-cat <<EOF
-Profile: $profile (console baseline; AmeDE is not included)
+if [ "$with_packages" = yes ]; then
+	cat <<EOF
+Profile: $profile
 Source repository: https://github.com/ntych/AmeOS
 Pinned FreeBSD base: $base
 Source snapshot: $commit
@@ -107,7 +116,26 @@ Source date epoch: $epoch
 Target/kernel: $TARGET/$TARGET_ARCH/$KERNCONF
 Base system version: $freebsd_type $freebsd_revision-$freebsd_branch
 Release filename prefix: $release
-Overlay: ameos/overlay/ (os-release, motd) applied via apply-overlay.sh
+Overlay: ameos/overlay/ applied via apply-overlay.sh
+Packages: FreeBSD official pkg  ABI=$pkg_abi  branch=$pkg_repo_branch
+Work directory: $workdir
+Artifacts: $workdir/artifacts
+Jobs: $jobs
+Stages: snapshot -> buildworld -> buildkernel -> release (pkg) -> install artifacts -> apply overlay
+Ports/pkgbase: disabled
+Host installation: none; release install uses DESTDIR
+EOF
+else
+	cat <<EOF
+Profile: $profile
+Source repository: https://github.com/ntych/AmeOS
+Pinned FreeBSD base: $base
+Source snapshot: $commit
+Source date epoch: $epoch
+Target/kernel: $TARGET/$TARGET_ARCH/$KERNCONF
+Base system version: $freebsd_type $freebsd_revision-$freebsd_branch
+Release filename prefix: $release
+Overlay: ameos/overlay/ applied via apply-overlay.sh
 Work directory: $workdir
 Artifacts: $workdir/artifacts
 Jobs: $jobs
@@ -115,6 +143,7 @@ Stages: snapshot -> buildworld -> buildkernel -> release -> install artifacts ->
 External packages/ports/pkgbase: disabled
 Host installation: none; release install uses DESTDIR
 EOF
+fi
 if [ -n "$dirty" ]; then
 	if [ "$plan" = yes ]; then
 		printf '%s\n' 'NOTE: checkout has uncommitted files; commit them before building.'
@@ -183,15 +212,28 @@ build_make()
 }
 release_make()
 {
-	make -C "$src/release" __MAKE_CONF=/dev/null \
-	    SRCCONF="$src/ameos/profiles/$profile.src.conf" \
-	    TARGET="$TARGET" TARGET_ARCH="$TARGET_ARCH" KERNCONF="$KERNCONF" \
-	    SOURCE_DATE_EPOCH="$epoch" PKG_TIMESTAMP="$epoch" \
-	    NOPORTS=yes NOSRC=yes NOPKG=yes NOPKGBASE=yes \
+	# Base flags shared by all profiles.
+	_rm_base="make -C $src/release __MAKE_CONF=/dev/null \
+	    SRCCONF=$src/ameos/profiles/$profile.src.conf \
+	    TARGET=$TARGET TARGET_ARCH=$TARGET_ARCH KERNCONF=$KERNCONF \
+	    SOURCE_DATE_EPOCH=$epoch PKG_TIMESTAMP=$epoch \
+	    NOSRC=yes NOPORTS=yes \
 	    WITH_DVD= WITH_VMIMAGES= WITH_CLOUDWARE= WITH_OCIIMAGES= \
 	    WITH_COMPRESSED_IMAGES= WITH_COMPRESSED_VMIMAGES= \
-	    TYPE="$freebsd_type" REVISION="$freebsd_revision" BRANCH="$freebsd_branch" \
-	    NO_ROOT=yes WITHOUT_QEMU=yes OSRELEASE="$release" "$@"
+	    TYPE=$freebsd_type REVISION=$freebsd_revision BRANCH=$freebsd_branch \
+	    NO_ROOT=yes WITHOUT_QEMU=yes OSRELEASE=$release"
+
+	if [ "$with_packages" = yes ]; then
+		# Desktop profile: allow pkg, point to the official FreeBSD repo.
+		# PACKAGE_SITE is the base URL pkg(8) uses during the release build.
+		$_rm_base \
+		    PACKAGE_SITE="https://pkg.FreeBSD.org/${pkg_abi}/${pkg_repo_branch}" \
+		    PKG_ABI="$pkg_abi" \
+		    "$@"
+	else
+		# Console profiles: disable all external package sources.
+		$_rm_base NOPKG=yes NOPKGBASE=yes "$@"
+	fi
 }
 # Redirect each stage directly: failures cannot be hidden by a tee pipeline.
 printf 'Building world; log: %s/buildworld.log\n' "$workdir"

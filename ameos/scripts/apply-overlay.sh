@@ -52,10 +52,13 @@ profile_conf="$root/ameos/profiles/$profile.conf"
 [ -f "$profile_conf" ] || fail "profile not found: $profile_conf"
 [ -d "$overlay" ]      || fail "overlay directory not found: $overlay"
 
-# Source the profile to get AMEOS_VERSION.
+# Source the profile to get AMEOS_VERSION and optional desktop tokens.
 # shellcheck source=/dev/null
 . "$profile_conf"
 [ -n "${AMEOS_VERSION:-}" ] || fail "AMEOS_VERSION not set by profile"
+# Optional tokens — default to empty string when not set by the profile.
+pkg_abi="${PKG_ABI:-}"
+pkg_repo_branch="${PKG_REPO_BRANCH:-}"
 
 # Read FreeBSD version tokens from the newvers.sh in the source tree.
 version_file="$root/sys/conf/newvers.sh"
@@ -98,6 +101,8 @@ find "$overlay" -type f ! -name 'README.md' | while IFS= read -r src; do
         -e "s|@SOURCE_COMMIT@|$source_commit|g" \
         -e "s|@FREEBSD_REVISION@|$freebsd_revision|g" \
         -e "s|@FREEBSD_BRANCH@|$freebsd_branch|g" \
+        -e "s|@PKG_ABI@|$pkg_abi|g" \
+        -e "s|@PKG_REPO_BRANCH@|$pkg_repo_branch|g" \
         "$src" > "$tmp"
     mv "$tmp" "$dest"
     printf '  installed: %s\n' "/$rel"
