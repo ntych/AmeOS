@@ -29,3 +29,5 @@ jobs:
           node-version: '22'
       - name: Check release orchestration
         run: node ameos/tests/build-release.test.mjs
+      - name: Check overlay script
+        run: node ameos/tests/apply-overlay.test.mjs

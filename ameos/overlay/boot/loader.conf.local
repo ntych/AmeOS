@@ -1,0 +1,17 @@
+# AmeOS @AMEOS_VERSION@ boot configuration
+# This file is managed by the AmeOS overlay. User changes belong in
+# /boot/loader.conf — that file is not part of the overlay.
+
+# Product identification shown in the boot menu
+loader_brand="AmeOS"
+loader_menu_title="AmeOS @AMEOS_VERSION@ Boot Menu"
+
+# Wait 5 seconds at the boot menu (default is 10)
+autoboot_delay="5"
+
+# Enable ZFS boot support
+zfs_load="YES"
+vfs.root.mountfrom.options="rw"
+
+# Suppress verbose boot messages on the console; switch to verbose with -v
+boot_verbose="NO"

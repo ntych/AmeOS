@@ -1,0 +1,25 @@
+# AmeOS @AMEOS_VERSION@ system defaults
+# This file is managed by the AmeOS overlay. User settings belong in
+# /etc/rc.conf — that file is not part of the overlay and will not be
+# overwritten on upgrade.
+
+hostname="ameos"
+
+# Clock
+ntpd_enable="YES"
+ntpd_flags="-g"
+
+# ZFS
+zfs_enable="YES"
+
+# Disable services that waste RAM on a minimal console image
+sendmail_enable="NONE"
+sendmail_msp_queue_enable="NO"
+sendmail_outbound_enable="NO"
+sendmail_submit_enable="NO"
+
+# Logging
+syslogd_flags="-ss"
+
+# Allow users to mount removable media
+vfs_usermount="YES"
