@@ -15,19 +15,21 @@ export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 
-# Ensure Wayland socket directory exists if running natively (no DISPLAY set).
-if [ -z "$DISPLAY" ]; then
+# On a native Wayland session, select the default socket name but do not
+# manufacture DISPLAY: setting DISPLAY would make clients prefer X11/XWayland
+# even when a native Wayland connection is available.
+if [ -z "${DISPLAY:-}" ]; then
 	export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
-	# No need to pre-create socket; Wayfire creates it.
 fi
 
-# For Xvfb testing, ensure a default DISPLAY is set.
-if [ -z "$DISPLAY" ]; then
-	export DISPLAY=:0
-fi
-
-# Unset SSH_AGENT, DBUS_SESSION_BUS_ADDRESS so they do not interfere with a fresh session.
+# Unset SSH_ASKPASS so graphical helpers do not unexpectedly launch an
+# interactive SSH prompt inside the desktop session.
 unset SSH_ASKPASS
+
+command -v wayfire >/dev/null 2>&1 || {
+	echo "amede-session: wayfire not found in PATH" >&2
+	exit 127
+}
 
 # Start the Wayfire compositor with AmeDE autostart.
 # The config file path may be customized via WAYFIRE_CONFIG_FILE or XDG_CONFIG_HOME.
