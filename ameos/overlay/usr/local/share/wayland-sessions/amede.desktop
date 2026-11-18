@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=AmeDE
+Comment=AmeOS desktop environment with Wayfire
+Exec=amede-session
+Type=Application
+DesktopNames=AmeDE
+# Wayland session identifier: must be "wayland" or unknown to some DMs
+# (This follows X11/Wayland session spec, though AmeDE is custom)
+X-Session-Type=wayland

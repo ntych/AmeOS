@@ -1,0 +1,45 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
+# AmeDE session launcher for Wayfire.
+# Called by login managers (login(1), display managers) to start the desktop session.
+# Environment: DISPLAY (for Xvfb/X11 testing) or WAYLAND_DISPLAY (Wayland native).
+
+set -e
+
+# Ensure XDG directories exist; many apps rely on them.
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/xdg-runtime-$(id -u)}"
+[ -d "$XDG_RUNTIME_DIR" ] || mkdir -p "$XDG_RUNTIME_DIR"
+chmod 0700 "$XDG_RUNTIME_DIR"
+
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+# Ensure Wayland socket directory exists if running natively (no DISPLAY set).
+if [ -z "$DISPLAY" ]; then
+	export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
+	# No need to pre-create socket; Wayfire creates it.
+fi
+
+# For Xvfb testing, ensure a default DISPLAY is set.
+if [ -z "$DISPLAY" ]; then
+	export DISPLAY=:0
+fi
+
+# Unset SSH_AGENT, DBUS_SESSION_BUS_ADDRESS so they do not interfere with a fresh session.
+unset SSH_ASKPASS
+
+# Start the Wayfire compositor with AmeDE autostart.
+# The config file path may be customized via WAYFIRE_CONFIG_FILE or XDG_CONFIG_HOME.
+config_file="${WAYFIRE_CONFIG_FILE:-$XDG_CONFIG_HOME/wayfire/wayfire-amede.ini}"
+if [ ! -f "$config_file" ]; then
+	# Fallback to system default.
+	config_file="/etc/xdg/wayfire/wayfire-amede.ini"
+fi
+
+if [ ! -f "$config_file" ]; then
+	echo "amede-session: wayfire config not found at $config_file" >&2
+	exit 1
+fi
+
+exec wayfire -c "$config_file"
