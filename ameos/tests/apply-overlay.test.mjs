@@ -79,6 +79,7 @@ try {
   // The script resolves its root relative to its own path and uses HEAD as
   // BUILD_ID, so this makes the expected commit and the script's commit agree.
   const fixtureScript = path.join(repo, 'ameos/scripts/apply-overlay.sh');
+  fs.mkdirSync(path.dirname(fixtureScript), { recursive: true });
   fs.copyFileSync(path.join(source, 'scripts/apply-overlay.sh'), fixtureScript);
   fs.chmodSync(fixtureScript, 0o755);
   script = posix(fixtureScript);
