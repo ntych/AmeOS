@@ -14,7 +14,6 @@ Amaterasu, Sakura и OLED.
 См. [протокол валидации базового образа](ameos/docs/validation-2026-11.md).
 
 - [Сайт проекта](https://ameos.umi-kujou.ru/)
-- [Репозиторий](https://github.com/ntych/AmeOS)
 - [Собственные компоненты AmeOS](ameos/README.md)
 - [Инструкция сборки](ameos/docs/build.md)
 - [Архитектура](ameos/docs/architecture.md)
