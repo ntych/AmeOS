@@ -35,21 +35,23 @@
 
 ### 1. Wayland-сессия скрипт
 
-Создать `/usr/local/bin/amede-session`:
-```sh
-#!/bin/sh
-# AmeDE session launcher for Wayfire.
-exec wayfire -c /etc/xdg/wayfire/wayfire-amede.ini
-```
+`/usr/local/bin/amede-session` уже подготовлен в overlay:
+- создаёт безопасный `XDG_RUNTIME_DIR` с правами `0700`, если его нет;
+- сохраняет нативный Wayland-сеанс (не подставляет `DISPLAY` автоматически);
+- принимает `WAYFIRE_CONFIG_FILE` для тестов/пользовательской настройки;
+- проверяет наличие `wayfire` в `PATH`;
+- запускает `wayfire -c <config>` через `exec`.
 
-Wayfire потом запустит AmeDE как дочерний процесс через `exec` в `wayfire.ini`.
+Wayfire потом запускает AmeDE как дочерний процесс через `[autostart]` в конфиге.
 
 ### 2. Wayfire конфиг для AmeDE
 
 `overlay/etc/xdg/wayfire/wayfire-amede.ini`:
-- Минимальный конфиг (compositor + input + core plugins only)
+- Минимальный конфиг с плагинами `autostart`, `move` и `resize`
+- Автоопределение outputs — без жёсткого DP-1/HDMI имени
+- `xwayland = true` для X11-совместимости
 - Autostart AmeDE при запуске Wayfire
-- Disable stock panel/shell (wf-shell не используется)
+- Stock panel/shell не используется
 
 ### 3. XDG session registration
 
@@ -125,11 +127,20 @@ startx amede-session
 5. `docs/wayfire-setup.md` — для разработчиков
 6. Тест apply-overlay для desktop-файлов (проверка que они на месте и не сломаны)
 
+## Проверки без GPU
+
+`ameos/scripts/check-amede-session.sh` проверяет наличие и базовую структуру
+трёх файлов сессии, активность `autostart`, `xwayland`, отсутствие жёсткого
+имени output и запуск AmeDE. `ameos/tests/amede-session.test.mjs` дополнительно
+запускает сессию с fake `wayfire`: проверяет переданный config path, права
+`XDG_RUNTIME_DIR` и явную ошибку при отсутствии Wayfire. Эти проверки не
+доказывают, что compositor работает на реальном GPU.
+
 ## Интеграция в build-release.sh
 
-desktop-профиль пока не ставит пакеты автоматически. Нужна отдельная работа над
-`release_make()` логикой pkg или post-install скрипты образа. Временно:
-пользователь устанавливает `pkg install wayfire` на готовой системе.
+desktop-профиль пока не ставит Wayfire-пакеты автоматически. Нужна отдельная
+работа над `release_make()` логикой pkg или post-install скриптом образа.
+Временно пользователь устанавливает `pkg install wayfire mesa-libs xwayland foot`
+на готовой системе.
 
-Сейчас мы подготовим конфиги и сессию, запушим в main. На FreeBSD-хосте
-с GPU можно будет опробовать.
+На FreeBSD-хосте с GPU остаётся обязательная проверка compositor и AmeDE.
