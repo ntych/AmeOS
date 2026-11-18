@@ -55,7 +55,7 @@ function check(name, fn) {
   console.log(`ok ${passed} - ${name}`);
 }
 
-const script = posix(path.join(source, 'scripts/apply-overlay.sh'));
+let script = posix(path.join(source, 'scripts/apply-overlay.sh'));
 
 try {
   // ── Set up a minimal fixture repository ───────────────────────────────────
@@ -74,6 +74,14 @@ try {
   git('add', '.');
   git('commit', '-qm', 'fixture');
   const head = git('rev-parse', 'HEAD');
+
+  // Run the script from the fixture repository, not from the source checkout.
+  // The script resolves its root relative to its own path and uses HEAD as
+  // BUILD_ID, so this makes the expected commit and the script's commit agree.
+  const fixtureScript = path.join(repo, 'ameos/scripts/apply-overlay.sh');
+  fs.copyFileSync(path.join(source, 'scripts/apply-overlay.sh'), fixtureScript);
+  fs.chmodSync(fixtureScript, 0o755);
+  script = posix(fixtureScript);
 
   const destdir = path.join(temp, 'dest');
 
