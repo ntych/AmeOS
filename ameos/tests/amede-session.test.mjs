@@ -19,7 +19,10 @@ const posix = value => process.platform === 'win32'
 function run(args, options = {}) {
   const env = { ...process.env, ...options.env };
   if (process.platform === 'win32') env.PATH = `/mingw64/bin:/usr/bin:/bin:${env.PATH}`;
-  return spawnSync(shell, args, { encoding: 'utf8', timeout: 15000, ...options, env });
+  const result = spawnSync(shell, args, { encoding: 'utf8', timeout: 15000, ...options, env });
+  if (result.error) throw result.error;
+  assert.equal(result.signal, null, `shell interrupted: ${result.stderr}`);
+  return result;
 }
 
 try {
@@ -54,9 +57,22 @@ exit 0
   assert.equal(fs.readFileSync(log, 'utf8'), `-c\n${posix(config)}\n`);
   assert.equal(fs.statSync(runtime).mode & 0o777, 0o700);
 
-  // Note: amede-session's error handling (missing wayfire check) is validated
-  // by check-amede-session.sh on all platforms. We do not test error exit codes
-  // here because shell behavior for missing commands varies across CI runners.
+  // Start the shell with its normal PATH, then restrict only the launcher's
+  // PATH inside that shell. Clearing spawnSync's PATH would prevent Node from
+  // finding `sh` itself (ENOENT/status=null), not exercise the launcher.
+  // Keep runtime setup tools available, but deliberately provide no wayfire.
+  const tools = path.join(tmp, 'runtime-tools');
+  fs.mkdirSync(tools);
+  for (const tool of ['mkdir', 'chmod']) {
+    fs.writeFileSync(path.join(tools, tool), `#!/bin/sh\nexec /bin/${tool} "$@"\n`);
+    fs.chmodSync(path.join(tools, tool), 0o755);
+  }
+  const missing = run([
+    '-c', 'PATH="$1"; export PATH; . "$2"',
+    'session-error-test', posix(tools), posix(launcher),
+  ], { cwd: tmp, env });
+  assert.equal(missing.status, 127, missing.stderr);
+  assert.match(missing.stderr, /wayfire not found/);
 
   console.log('check-amede-session: runtime smoke passed');
 } finally {
