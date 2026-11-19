@@ -27,7 +27,7 @@ grep -q '^plugins = .*autostart' "$config" || fail 'autostart plugin is not enab
 grep -q '^xwayland = true$' "$config" || fail 'XWayland is not enabled'
 ! grep -q '^outputs = ' "$config" || fail 'Wayfire config hard-codes an output name'
 grep -q '^\[autostart\]$' "$config" || fail 'Wayfire config has no [autostart] section'
-grep -q '^amede = amede --theme amaterasu$' "$config" || fail 'AmeDE is not autostarted'
+grep -q '^amede = amede$' "$config" || fail 'AmeDE autostart must preserve the saved theme'
 grep -q '^Exec=amede-session$' "$session" || fail 'XDG session does not launch amede-session'
 grep -q '^Type=Application$' "$session" || fail 'XDG session has no Application type'
 grep -q '^exec wayfire -c ' "$launcher" || fail 'launcher does not exec Wayfire'
