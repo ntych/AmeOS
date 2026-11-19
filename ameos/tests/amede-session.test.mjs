@@ -29,7 +29,7 @@ try {
   const checker = posix(path.join(source, 'scripts/check-amede-session.sh'));
   const launcher = path.join(tmp, 'amede-session');
   const fakeWayfire = path.join(tmp, 'wayfire');
-  const config = path.join(tmp, 'wayfire.ini');
+  const config = path.join(tmp, 'explicit config.ini');
   const runtime = path.join(tmp, 'runtime');
   const log = path.join(tmp, 'wayfire-args.log');
 
@@ -52,10 +52,34 @@ exit 0
     XDG_RUNTIME_DIR: posix(runtime),
     WAYFIRE_CONFIG_FILE: posix(config),
   };
-  const result = run([posix(launcher)], { cwd: tmp, env });
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(fs.readFileSync(log, 'utf8'), `-c\n${posix(config)}\n`);
+  const userConfigDir = path.join(tmp, 'config', 'wayfire');
+  fs.mkdirSync(userConfigDir, { recursive: true });
+  const userConfig = path.join(userConfigDir, 'wayfire.ini');
+  const legacyConfig = path.join(userConfigDir, 'wayfire-amede.ini');
+  fs.writeFileSync(userConfig, '[core]\nplugins = autostart\n');
+  fs.writeFileSync(legacyConfig, '[core]\nplugins = autostart\n');
+  env.XDG_CONFIG_HOME = posix(path.dirname(userConfigDir));
+
+  function expectConfig(overrides, expected) {
+    const result = run([posix(launcher)], { cwd: tmp, env: { ...env, ...overrides } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fs.readFileSync(log, 'utf8'), `-c\n${posix(expected)}\n`);
+  }
+  expectConfig({}, config); // explicit override wins, including paths with spaces
   assert.equal(fs.statSync(runtime).mode & 0o777, 0o700);
+  expectConfig({ WAYFIRE_CONFIG_FILE: '' }, userConfig);
+  fs.unlinkSync(userConfig);
+  expectConfig({ WAYFIRE_CONFIG_FILE: '' }, legacyConfig);
+
+  fs.unlinkSync(log);
+  const missingConfig = path.join(tmp, 'missing config.ini');
+  const invalid = run([posix(launcher)], {
+    cwd: tmp, env: { ...env, WAYFIRE_CONFIG_FILE: posix(missingConfig) },
+  });
+  assert.equal(invalid.status, 1, invalid.stderr);
+  assert.match(invalid.stderr, /wayfire config not found/);
+  assert.ok(invalid.stderr.includes(posix(missingConfig)));
+  assert.equal(fs.existsSync(log), false, 'Wayfire must not run with an invalid override');
 
   // Start the shell with its normal PATH, then restrict only the launcher's
   // PATH inside that shell. Clearing spawnSync's PATH would prevent Node from

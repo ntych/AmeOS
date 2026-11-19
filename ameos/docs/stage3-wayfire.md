@@ -38,7 +38,10 @@
 `/usr/local/bin/amede-session` уже подготовлен в overlay:
 - создаёт безопасный `XDG_RUNTIME_DIR` с правами `0700`, если его нет;
 - сохраняет нативный Wayland-сеанс (не подставляет `DISPLAY` автоматически);
-- принимает `WAYFIRE_CONFIG_FILE` для тестов/пользовательской настройки;
+- явно заданный `WAYFIRE_CONFIG_FILE` имеет приоритет; отсутствующий файл
+  приводит к ошибке, а не к молчаливой подмене конфигурации;
+- без override выбирает `$XDG_CONFIG_HOME/wayfire/wayfire.ini`, затем старое
+  имя `wayfire-amede.ini`, затем `/etc/xdg/wayfire/wayfire-amede.ini`;
 - проверяет наличие `wayfire` в `PATH`;
 - запускает `wayfire -c <config>` через `exec`.
 
