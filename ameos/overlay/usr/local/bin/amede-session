@@ -31,11 +31,16 @@ command -v wayfire >/dev/null 2>&1 || {
 	exit 127
 }
 
-# Start the Wayfire compositor with AmeDE autostart.
-# The config file path may be customized via WAYFIRE_CONFIG_FILE or XDG_CONFIG_HOME.
-config_file="${WAYFIRE_CONFIG_FILE:-$XDG_CONFIG_HOME/wayfire/wayfire-amede.ini}"
-if [ ! -f "$config_file" ]; then
-	# Fallback to system default.
+# Explicit overrides must exist: do not silently launch a different config.
+# Otherwise prefer the documented user config, retaining the old AmeDE-specific
+# filename for compatibility, before falling back to the system default.
+if [ -n "${WAYFIRE_CONFIG_FILE:-}" ]; then
+	config_file="$WAYFIRE_CONFIG_FILE"
+elif [ -f "$XDG_CONFIG_HOME/wayfire/wayfire.ini" ]; then
+	config_file="$XDG_CONFIG_HOME/wayfire/wayfire.ini"
+elif [ -f "$XDG_CONFIG_HOME/wayfire/wayfire-amede.ini" ]; then
+	config_file="$XDG_CONFIG_HOME/wayfire/wayfire-amede.ini"
+else
 	config_file="/etc/xdg/wayfire/wayfire-amede.ini"
 fi
 
