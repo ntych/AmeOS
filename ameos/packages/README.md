@@ -26,4 +26,19 @@ pkg install $(awk '!/^($|#)/ { print }' \
 ```
 
 The commands above are intentionally not executed by the build scripts.
-Console profiles do not use this manifest and remain package-free.
+For a read-only plan using the checked-in manifest:
+
+```sh
+sh ameos/scripts/install-desktop-packages.sh --dry-run
+```
+
+To actually install on a prepared native FreeBSD system, after reviewing the
+plan and repository configuration:
+
+```sh
+sh ameos/scripts/install-desktop-packages.sh --apply
+```
+
+`--apply` is the only mode that calls `pkg install --yes`; it is rejected on
+non-FreeBSD hosts. Console profiles do not use this manifest and remain
+package-free.
