@@ -35,3 +35,5 @@ jobs:
         run: node ameos/tests/amede-session.test.mjs
       - name: Check desktop package manifest
         run: sh ameos/scripts/check-desktop-packages.sh
+      - name: Check desktop package installer plan
+        run: sh ameos/scripts/install-desktop-packages.sh --dry-run
