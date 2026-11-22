@@ -1,0 +1,24 @@
+# AmeOS desktop package manifest
+#
+# This is an explicit install plan for a prepared FreeBSD desktop system.
+# It is intentionally not consumed by build-release.sh yet: release builds
+# remain offline and do not resolve package names from the network.
+
+# Wayland compositor and session
+wayfire
+wayland
+libxkbcommon
+
+# Rendering and X11 compatibility
+mesa-libs
+xwayland
+libdrm
+
+# Terminal and fonts
+foot
+dejavu
+liberation-fonts-ttf
+
+# Optional desktop helpers
+# wf-shell
+# waybar

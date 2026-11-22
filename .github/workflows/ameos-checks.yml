@@ -33,3 +33,5 @@ jobs:
         run: node ameos/tests/apply-overlay.test.mjs
       - name: Check AmeDE Wayfire session
         run: node ameos/tests/amede-session.test.mjs
+      - name: Check desktop package manifest
+        run: sh ameos/scripts/check-desktop-packages.sh
