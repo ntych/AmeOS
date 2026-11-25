@@ -19,6 +19,8 @@ before writing each file.
 |---|---|
 | `etc/os-release` | Standard os-release identification (read by `lsb_release`, `hostnamectl`, etc.) |
 | `etc/motd.template` | Login message rendered at boot |
+| `etc/rc.d/ame-loader` | rc.d service script for interactive boot menu |
+| `usr/local/sbin/ame-loader` | AmeOS interactive bootloader (archinstall-style CLI) |
 
 ## Applying the overlay
 
