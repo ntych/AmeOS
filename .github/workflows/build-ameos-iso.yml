@@ -1,0 +1,58 @@
+name: Build AmeOS ISO
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Build profile'
+        required: true
+        default: 'desktop-amd64'
+        type: choice
+        options:
+          - base-amd64
+          - compact-amd64
+          - v0.2-b-amd64
+          - desktop-amd64
+
+permissions:
+  contents: read
+
+jobs:
+  build-iso:
+    name: Build AmeOS ISO (${{ matrix.profile }})
+    runs-on: freebsd-14
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out pinned FreeBSD base
+        run: |
+          base_rev=$(cat ameos/base-revision)
+          git fetch --depth=1 origin "$base_rev" 2>/dev/null || true
+      - name: Prepare build directory
+        run: |
+          mkdir -p /tmp/ameos-build
+          chmod 1777 /tmp/ameos-build
+      - name: Run build plan
+        run: |
+          sh ameos/scripts/build-release.sh \
+            --plan \
+            --profile "${{ inputs.profile }}" \
+            --workdir /tmp/ameos-build \
+            --jobs 4
+      - name: Build release
+        run: |
+          sh ameos/scripts/build-release.sh \
+            --profile "${{ inputs.profile }}" \
+            --workdir /tmp/ameos-build \
+            --jobs 4
+      - name: List artifacts
+        run: |
+          ls -lh /tmp/ameos-build/artifacts/
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ameos-iso-${{ inputs.profile }}
+          path: /tmp/ameos-build/artifacts/*.iso
+          if-no-files-found: error
+          retention-days: 7
