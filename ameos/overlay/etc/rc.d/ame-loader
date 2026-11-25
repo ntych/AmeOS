@@ -1,0 +1,28 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# AmeOS loader rc.d service
+# Displays the interactive boot menu before multiuser startup
+#
+# PROVIDE: ame-loader
+# REQUIRE:
+# BEFORE: LOGIN
+
+. /etc/rc.subr
+
+name="ame_loader"
+desc="AmeOS Interactive Boot Menu"
+rcvar="ame_loader_enable"
+command="/usr/local/sbin/ame-loader"
+
+start_cmd="ame_loader_start"
+
+ame_loader_start()
+{
+    if [ -x "$command" ]; then
+        "$command"
+    fi
+}
+
+load_rc_config $name
+run_rc_command "$1"

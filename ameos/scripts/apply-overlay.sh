@@ -105,6 +105,13 @@ find "$overlay" -type f ! -name 'README.md' | while IFS= read -r src; do
         -e "s|@PKG_REPO_BRANCH@|$pkg_repo_branch|g" \
         "$src" > "$tmp"
     mv "$tmp" "$dest"
+
+    # Make certain files executable (binaries in sbin/bin, rc.d scripts).
+    case "$rel" in
+    usr/local/sbin/*|usr/local/bin/*|usr/sbin/*|usr/bin/*|etc/rc.d/*)
+        chmod 755 "$dest"
+        ;;
+    esac
     printf '  installed: %s\n' "/$rel"
 done
 

@@ -12,6 +12,10 @@ ntpd_flags="-g"
 # ZFS
 zfs_enable="YES"
 
+# AmeOS interactive bootloader
+# Uncomment to enable automatic boot menu at startup:
+# ame_loader_enable="YES"
+
 # Disable services that waste RAM on a minimal console image
 sendmail_enable="NONE"
 sendmail_msp_queue_enable="NO"
